@@ -37,25 +37,21 @@ if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     cd linux-stable
     echo "Checking out version ${KERNEL_VERSION}"
     git checkout ${KERNEL_VERSION}
-    # echo "Changing file ${OUTDIR}/linux-stable/scripts/dtc/dtc-lexer.lex.c"
-    # sed -i 's/YYLTYPE yylloc/extern &/' ${OUTDIR}/linux-stable/scripts/dtc/dtc-lexer.lex.c
-    # git apply ./patch.diff ${OUTDIR}/${KERNEL_REPO}/scripts/dtc/dtc-lexer.lex.c
-    # git apply ./patch.diff
-    # YYLTYPE yylloc
-    # 
-    # /home/fabio/Documents/studies/linux-studies/linux-assignment-3-part-2/aeld/linux-stable/scripts/dtc/dtc-lexer.lex.c  
-    # git diff --no-index /path/to/foo /path/to/bar
-
-
+  
     # TODO: Add your kernel build steps here
     echo $PATH
     make -j4 ARCH=arm64 CROSS_COMPILE=${CROSS_COMPILE} mrproper
-    # sed -i 's/YYLTYPE yylloc/extern &/' ${OUTDIR}/linux-stable/scripts/dtc/dtc-lexer.lex.c
     make -j4 ARCH=arm64 CROSS_COMPILE=${CROSS_COMPILE} defconfig
     make -j4 ARCH=arm64 CROSS_COMPILE=${CROSS_COMPILE} all
 fi
-#exit 1
 echo "Adding the Image in outdir"
+cp -r ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ${OUTDIR}
+if [ -e ${OUTDIR}/Image ]; then
+    echo "Image files copied to ${OUTDIR}/Image"
+else
+    echo "couldn't copy image files into ${OUTDIR}/Image"
+    exit 1
+fi
 
 echo "Creating the staging directory for the root filesystem"
 cd "$OUTDIR"
@@ -66,6 +62,7 @@ then
 fi
 
 # TODO: Create necessary base directories
+ROOTFS=${OUTDIR}/rootfs
 mkdir -p "${OUTDIR}/rootfs/bin/"
 mkdir -p "${OUTDIR}/rootfs/dev/"
 mkdir -p "${OUTDIR}/rootfs/etc/"
@@ -116,8 +113,8 @@ sudo cp ${TOOLCHAIN_PATH}/libc/lib64/libc.so.6 ${OUTDIR}/rootfs/lib64/
 sudo ln -sr ${OUTDIR}/rootfs/lib64/libc.so.6 ${OUTDIR}/rootfs/lib64/libc.so
 
 # We are not sure we need this one.
-# sudo cp ${TOOLCHAIN_PATH}/libc/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib/ld-linux-aarch64.so
-# sudo ln -sr ${OUTDIR}/rootfs/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib/ld-linux-aarch64.so
+sudo cp ${TOOLCHAIN_PATH}/libc/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib/
+sudo ln -sr ${OUTDIR}/rootfs/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib/ld-linux-aarch64.so
 
 # TODO: Make device nodes
 mkdir -p ${OUTDIR}/rootfs/dev
@@ -141,9 +138,9 @@ cp ./writer ${OUTDIR}/rootfs/home/
 
 cp ./finder.sh ${OUTDIR}/rootfs/home/
 cp ./finder-test.sh ${OUTDIR}/rootfs/home/
-cp ../conf/username.txt ${OUTDIR}/rootfs/home/
-cp ../conf/assignment.txt ${OUTDIR}/rootfs/home/
+cp -r ./conf/ ${OUTDIR}/rootfs/home
 cp ./autorun-qemu.sh ${OUTDIR}/rootfs/home/
+
 
 # TODO: Chown the root directory
 sudo chown root:root ${OUTDIR}/rootfs
